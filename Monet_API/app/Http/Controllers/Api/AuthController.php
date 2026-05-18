@@ -8,6 +8,9 @@ use App\UserRole;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\DB;
+use App\Models\Patient;
+
 class AuthController extends Controller
 {
     //
@@ -18,10 +21,10 @@ class AuthController extends Controller
     }
 */
 
-        
 
 
 
+    /*
     public function register(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -47,13 +50,77 @@ class AuthController extends Controller
             'password' => Hash::make($request->password),
             'phone' => $request->phone,
             'role' => UserRole::PATIENT->value,
-        ]);
+        ]);*/
 
-        /** @var \Tymon\JWTAuth\JWTGuard $guard */
+
+    ///** @var \Tymon\JWTAuth\JWTGuard $guard */
+    /*
         $guard = auth('api');
         $token = $guard->login($user);
 
         return $this->respondWithToken($token);
+    }*/
+
+
+
+
+        
+    public function register(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'first_name' => ['required', 'string', 'max:255'],
+            'last_name' => ['required', 'string', 'max:255'],
+            'username' => ['required', 'string', 'max:255', 'unique:users,username'],
+            'email' => ['required', 'email', 'unique:users,email'],
+            'password' => ['required', 'string', 'min:6'],
+            'phone' => ['nullable', 'string', 'max:30'],
+
+            // patient optional fields
+            'address' => ['nullable', 'string', 'max:255'],
+            'date_of_birth' => ['nullable', 'date'],
+            'gender' => ['nullable', 'string', 'max:50'],
+            'emergency_contact' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'Validation error',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        $data = $validator->validated();
+
+        $result = DB::transaction(function () use ($data) {
+            $user = User::create([
+                'first_name' => $data['first_name'],
+                'last_name' => $data['last_name'],
+                'username' => $data['username'],
+                'email' => $data['email'],
+                'password' => Hash::make($data['password']),
+                'phone' => $data['phone'] ?? null,
+                'role' => UserRole::PATIENT->value,
+            ]);
+
+            $patient = Patient::create([
+                'user_id' => $user->id,
+                'address' => $data['address'] ?? null,
+                'date_of_birth' => $data['date_of_birth'] ?? null,
+                'gender' => $data['gender'] ?? null,
+                'emergency_contact' => $data['emergency_contact'] ?? null,
+            ]);
+
+            return [
+                'user' => $user,
+                'patient' => $patient,
+            ];
+        });
+
+        return response()->json([
+            'message' => 'Patient registered successfully',
+            'user' => $result['user'],
+            'patient' => $result['patient'],
+        ], 201);
     }
 
     public function login(Request $request)
@@ -63,7 +130,7 @@ class AuthController extends Controller
             'password' => ['required', 'string'],
         ]);
 
-        
+
         if ($validator->fails()) {
             return response()->json([
                 'message' => 'Validation error',
@@ -105,7 +172,7 @@ class AuthController extends Controller
 
     public function logout()
     {
-        
+
         /** @var \Tymon\JWTAuth\JWTGuard $guard */
         $guard = auth('api');
         $guard->logout();
@@ -116,7 +183,7 @@ class AuthController extends Controller
 
 
 
-    
+
 
     public function refresh()
     {

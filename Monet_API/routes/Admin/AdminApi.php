@@ -3,7 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Middleware\RoleMiddleware;
 use App\Http\Controllers\Api\Admin\AdminController;
-
+use App\Models\Admin;
 
 Route::prefix('admin')
         ->middleware(['auth:api', 'role:admin'])
@@ -11,6 +11,13 @@ Route::prefix('admin')
                 Route::get('/test', [AdminController::class, 'index']);
 
                 Route::post('/Add_admin', [AdminController::class, 'addAdmin']);
+                Route::put('/password', [AdminController::class, 'changePassword']);
+                Route::patch('/me', [AdminController::class, 'updateMyInfo']);
+                
+
+
+                Route::get('/cities', [AdminController::class, 'getCities']);
+                Route::get('/specialties', [AdminController::class, 'getSpecialties']);
 
                 Route::get('/cities/{cityName}/id', [AdminController::class, 'getCityIdByName']);
                 Route::get('/specialties/{specialtyName}/id', [AdminController::class, 'getSpecialtyIdByName']);
@@ -23,6 +30,7 @@ Route::prefix('admin')
 
 
 
+                Route::get("/reviews" , [AdminController::class , 'getAllReviews']);
                 Route::delete('/reviews/{id}', [AdminController::class, 'deleteReview']);
 
                 Route::get('/patients', [AdminController::class, 'getAllPatients']);
@@ -30,8 +38,6 @@ Route::prefix('admin')
 
                 Route::get('/doctors', [AdminController::class, 'getAllDoctors']);
 
-                Route::put('/password', [AdminController::class, 'changePassword']);
                 Route::get('/dashboard', [AdminController::class, 'dashboard']);
-                Route::patch('/me', [AdminController::class, 'updateMyInfo']);
                 
         });

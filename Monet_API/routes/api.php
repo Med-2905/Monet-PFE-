@@ -12,6 +12,8 @@ Route::get('/test', function () {
 });
 
 require __DIR__.'/Admin/AdminApi.php';
+
+require __DIR__.'/Patient/PatientApi.php';
 /*
 // Public (no auth needed)
 Route::prefix('auth')->group(function () {

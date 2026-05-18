@@ -7,16 +7,21 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Override;
 
+use App\Models\User;
+use App\Models\RDV;
+use App\Models\Ordonnance;
+use App\Models\Reviews;
 class Patient extends Model
 {
     //
 
 
     protected $fillable = [
-        'adress',
+        'user_id',
+        'address',
         'date_of_birth',
         'gender', 
-        "emrgency_contact",
+        "emergency_contact",
     ];
 
 

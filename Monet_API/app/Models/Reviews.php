@@ -5,6 +5,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+use App\Models\Doctor;
+use App\Models\Patient;
+use App\Models\Rdv;
+use App\Models\Ordonnance;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 class Reviews extends Model
 {
     //
@@ -33,6 +38,9 @@ class Reviews extends Model
     {
         return $this->belongsTo(Rdv::class);
     }
+    
+
+    
 }
 
 

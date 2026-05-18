@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\Hash;
 use App\Models\Doctor;
 use App\Models\Reviews;
 use Illuminate\Validation\Rule;
+
 class AdminController extends Controller
 {
     //
@@ -116,9 +117,26 @@ class AdminController extends Controller
             'specialty_name' => $specialtyName,
         ]);
     }
+
+
+    public function getCities()
+    {
+        return response()->json([
+            'cities' => cities::orderBy('name')->get(['id', 'name']),
+        ]);
+    }
+
+    public function getSpecialties()
+    {
+        return response()->json([
+            'specialties' => Specialties::orderBy('name')->get(['id', 'name']),
+        ]);
+    }
+
     // ajouter un nouveau doctor
     public function addDoctor(Request $request)
     {
+        /*
         $validated = $request->validate([
             'first_name' => ['required', 'string', 'max:255'],
             'last_name' => ['required', 'string', 'max:255'],
@@ -127,8 +145,9 @@ class AdminController extends Controller
             'password' => ['required', 'string', 'min:8', 'confirmed'],
             'phone' => ['nullable', 'string', 'regex:/^[0-9\+\-\(\)\s]+$/', 'min:10', 'max:20'],
 
-            'city_name' => ['required', 'string', 'max:255'],
-            'specialty_name' => ['required', 'string', 'max:255'],
+
+            'city_id' => ['required', 'exists:cities,id'],
+            'specialty_id' => ['required', 'exists:specialties,id'],
 
             'address' => ['nullable', 'string', 'max:255'],
             'license_number' => ['nullable', 'string', 'max:255', 'unique:doctors,license_number'],
@@ -151,8 +170,8 @@ class AdminController extends Controller
 
             $doctorProfile = Doctor::create([
                 'user_id' => $user->id,
-                'city_id' => $cityId,
-                'specialty_id' => $specialtyId,
+                'city_id' => $validated['city_id'],
+                'specialty_id' => $validated['specialty_id'],
                 'address' => $validated['address'] ?? null,
                 'license_number' => $validated['license_number'] ?? null,
                 'bio' => $validated['bio'] ?? null,
@@ -167,6 +186,47 @@ class AdminController extends Controller
         return response()->json([
             'message' => 'Doctor created successfully',
             'doctor' => $doctor,
+        ], 201);*/
+        $validated = $request->validate([
+            'first_name' => ['required', 'string', 'max:255'],
+            'last_name' => ['required', 'string', 'max:255'],
+            'username' => ['required', 'string', 'max:255', 'unique:users,username'],
+            'email' => ['required', 'email', 'max:255', 'unique:users,email'],
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
+            'phone' => ['nullable', 'string', 'max:30'],
+
+            'city_id' => ['required', 'integer', 'exists:cities,id'],
+            'specialty_id' => ['required', 'integer', 'exists:specialties,id'],
+
+            'address' => ['nullable', 'string', 'max:255'],
+            'license_number' => ['nullable', 'string', 'max:255'],
+            'bio' => ['nullable', 'string'],
+        ]);
+
+        $doctor = DB::transaction(function () use ($validated) {
+            $user = User::create([
+                'first_name' => $validated['first_name'],
+                'last_name' => $validated['last_name'],
+                'username' => $validated['username'],
+                'email' => $validated['email'],
+                'password' => Hash::make($validated['password']),
+                'phone' => $validated['phone'] ?? null,
+                'role' => UserRole::DOCTOR->value,
+            ]);
+
+            return Doctor::create([
+                'user_id' => $user->id,
+                'city_id' => $validated['city_id'],
+                'specialty_id' => $validated['specialty_id'],
+                'address' => $validated['address'] ?? null,
+                'license_number' => $validated['license_number'] ?? null,
+                'bio' => $validated['bio'] ?? null,
+            ]);
+        });
+
+        return response()->json([
+            'message' => 'Doctor created successfully',
+            'doctor' => $doctor->load(['user', 'city', 'specialty']),
         ], 201);
     }
 
@@ -475,6 +535,51 @@ class AdminController extends Controller
                 'role',
                 'updated_at',
             ]),
+        ]);
+    }
+
+    public function getAllReviews(Request $request)
+    {
+        $reviews = Reviews::query()
+            ->with([
+                'patient:id,first_name,last_name,username,email,phone',
+                'doctor:id,user_id,specialty_id,city_id',
+                'doctor.user:id,first_name,last_name,username,email,phone',
+                'doctor.city:id,name',
+                'doctor.specialty:id,name',
+            ])
+
+            ->when($request->filled('rating'), function ($query) use ($request) {
+                $query->where('rating', $request->rating);
+            })
+
+            ->when($request->filled('patient'), function ($query) use ($request) {
+                $patient = strtolower($request->patient);
+
+                $query->whereHas('patient', function ($q) use ($patient) {
+                    $q->whereRaw('LOWER(first_name) LIKE ?', ["%{$patient}%"])
+                        ->orWhereRaw('LOWER(last_name) LIKE ?', ["%{$patient}%"])
+                        ->orWhereRaw('LOWER(username) LIKE ?', ["%{$patient}%"])
+                        ->orWhereRaw('LOWER(email) LIKE ?', ["%{$patient}%"]);
+                });
+            })
+
+            ->when($request->filled('doctor'), function ($query) use ($request) {
+                $doctor = strtolower($request->doctor);
+
+                $query->whereHas('doctor.user', function ($q) use ($doctor) {
+                    $q->whereRaw('LOWER(first_name) LIKE ?', ["%{$doctor}%"])
+                        ->orWhereRaw('LOWER(last_name) LIKE ?', ["%{$doctor}%"])
+                        ->orWhereRaw('LOWER(username) LIKE ?', ["%{$doctor}%"])
+                        ->orWhereRaw('LOWER(email) LIKE ?', ["%{$doctor}%"]);
+                });
+            })
+
+            ->latest()
+            ->paginate(15);
+
+        return response()->json([
+            'reviews' => $reviews,
         ]);
     }
 
