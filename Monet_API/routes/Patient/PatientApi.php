@@ -21,4 +21,13 @@ Route::prefix('patient')
                 
                 Route::put('/password', [PatientController::class, 'updatePassword']);
                 Route::get('/doctors', [PatientController::class, 'doctors']);
+
+                Route::post('/doctors/{doctor}/rdv' , [PatientController::class , 'reserve_RDV']);
+                Route::get('/rdvs' , [PatientController::class , 'Rdvs']);
+                Route::get('/rdvs/{rdv}/status' , [PatientController::class , 'RdvStatus']);
+                Route::get('/rdvs/history' , [PatientController::class , 'RdvHistory']);
+                Route::post('/rdvs/{rdv}/cancel' , [PatientController::class , 'cancelRdv']);
+                Route::get('/ordonnances' , [PatientController::class , 'Ordonnances']);
+                Route::post('/rdvs/{rdv}/review', [PatientController::class, 'addReview']);
+
         });

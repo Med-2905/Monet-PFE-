@@ -15,6 +15,7 @@ class Reviews extends Model
     //
 
     protected $fillable = [
+        'patient_id',
         'doctor_id',
         'rdv_id',
         'rating',

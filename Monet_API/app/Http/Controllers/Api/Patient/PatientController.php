@@ -13,6 +13,10 @@ use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\DB;
 
 use App\Models\Doctor;
+use App\Models\doctor_unavailable_days;
+use App\Models\Ordonnance;
+use App\Models\RDV;
+use App\Models\Reviews;
 //use App\Models\User;
 
 class PatientController extends Controller
@@ -206,8 +210,234 @@ class PatientController extends Controller
             'doctors' => $query->paginate(10),
         ]);
     }
-    
 
 
-    
+
+    public function reserve_RDV(Request $request, Doctor $doctor)
+    {
+        $patient = $this->currentPatient();
+
+
+        $validated = $request->validate([
+            'rdv_date' => ['required', 'date', 'after_or_equal:today'],
+            'rdv_time' => ['required', 'date_format:H:i'],
+            'reason' => ['nullable', 'string', 'max:255'],
+        ]);
+
+
+        $date = $validated['rdv_date'];
+        $time = $validated['rdv_time'];
+
+        $idUnavailable = doctor_unavailable_days::where('doctor_id', $doctor->id)
+            ->wheredate('unavailable_date_start', '<=', $date)
+            ->where(function ($q) use ($date) {
+                $q->whereDate('unavailable_date_end', '>=', $date)
+                    ->orWhere(function ($q2) use ($date) {
+                        $q2->whereNull('unavailable_date_end')
+                            ->whereDate('unavailable_date_start', $date);
+                    });
+            })
+            ->exists();
+
+
+
+        if ($idUnavailable) {
+            return response()->json([
+                'message' => 'The doctor is unavailable on the selected date.',
+            ], 422);
+        }
+
+
+
+        $alreadyReserved = RDV::where('doctor_id', $doctor->id)
+            ->whereDate('rdv_date', $date)
+            ->whereTime('rdv_time', $time)
+            ->whereIn('status', ['pending', 'confirmed'])
+            ->exists();
+
+
+
+        if ($alreadyReserved) {
+            return response()->json([
+                'message' => 'The selected time slot is already reserved. Please choose a different time.',
+            ], 422);
+        }
+
+
+
+        $rdv = RDV::create(
+            [
+                'patient_id' => $patient->id,
+                'doctor_id' => $doctor->id,
+                'rdv_date' => $date,
+                'rdv_time' => $time,
+                'status' => 'pending',
+                'reason' => $validated['reason'] ?? null,
+            ]
+        );
+
+
+        return response()->json([
+            'message' => 'Appointment created successfully',
+            'appointment' => $rdv->load(['doctor.user', 'doctor.city', 'doctor.specialty']),
+        ], 201);
+    }
+
+
+
+
+    public function Rdvs()
+    {
+        $patient = $this->currentPatient();
+
+        $rdvs = RDV::where('patient_id', $patient->id)
+            ->with(['doctor.user', 'doctor.city', 'doctor.specialty', 'review'])
+            ->orderByDesc('rdv_date')
+            ->orderByDesc('rdv_time')
+            ->paginate(10);
+
+        return response()->json([
+            'appointments' => $rdvs,
+        ]);
+    }
+
+
+
+
+    public function RdvStatus(RDV $rdv)
+    {
+        $patient = $this->currentPatient();
+
+        if ($rdv->patient_id !== $patient->id) {
+            return response()->json([
+                'message' => 'Forbidden',
+            ], 403);
+        }
+
+        return response()->json([
+            'appointment_id' => $rdv->id,
+            'status' => $rdv->status,
+            'reason' => $rdv->reason,
+            'rdv_date' => $rdv->rdv_date,
+            'rdv_time' => $rdv->rdv_time,
+        ]);
+    }
+
+
+    public function cancelRdv(Request $request, RDV $rdv)
+    {
+        $patient = $this->currentPatient();
+
+        if ($rdv->patient_id !== $patient->id) {
+            return response()->json([
+                'message' => 'forbidden',
+            ], 403);
+        }
+
+
+        if (!in_array($rdv->status, ['pending', 'confirmed'])) {
+            return response()->json([
+                'message' => 'Only pending or confirmed appointments can be cancelled.',
+            ], 422);
+        }
+
+        $validated = $request->validate([
+            'reason' => ['nullable', 'string', 'max:255'],
+        ]);
+
+
+        $rdv->update([
+            'status' => 'cancelled',
+            'reason' => $validated['reason'] ?? 'Cancelled by patient',
+        ]);
+
+        return response()->json([
+            'message' => 'Appointment cancelled successfully',
+            'appointment' => $rdv->fresh(),
+        ]);
+    }
+
+
+    public function RdvHistory()
+    {
+        $patient = $this->currentPatient();
+
+        $history = RDV::where('patient_id', $patient->id)
+            ->where(function ($q) {
+                $q->whereIn('status', ['completed', 'cancelled', 'no_show'])
+                    ->orWhereDate('rdv_date', '<', now()->toDateString());
+            })
+            ->with(['doctor.user', 'doctor.city', 'doctor.specialty', 'review'])
+            ->orderByDesc('rdv_date')
+            ->orderByDesc('rdv_time')
+            ->paginate(10);
+
+        return response()->json([
+            'history' => $history,
+        ]);
+    }
+
+
+    public function Ordonnances()
+    {
+        $patient = $this->currentPatient();
+        $ordonnances = Ordonnance::where('patient_id', $patient->id)
+            ->with([
+                'rdv',
+                'doctor.user',
+                'doctor.specialty',
+                'doctor.city',
+            ])
+            ->orderByDesc('created_at')
+            ->paginate(10);
+
+
+
+            return response()->json([
+            'Ordonnances' => $ordonnances,
+        ]);
+    }
+
+    public function addReview(Request $request, RDV $rdv)
+    {
+        $patient = $this->currentPatient();
+
+        if ($rdv->patient_id !== $patient->id) {
+            return response()->json([
+                'message' => 'Forbidden',
+            ], 403);
+        }
+
+        if ($rdv->status !== 'completed') {
+            return response()->json([
+                'message' => 'You can only review completed appointments',
+            ], 422);
+        }
+
+        $validated = $request->validate([
+            'rating' => ['required', 'integer', 'min:1', 'max:5'],
+            'comment' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $alreadyReviewed = Reviews::where('rdv_id', $rdv->id)->exists();
+
+        if ($alreadyReviewed) {
+            return response()->json([
+                'message' => 'You already reviewed this appointment',
+            ], 422);
+        }
+
+        $review = Reviews::create([
+            'patient_id' => $patient->id,
+            'doctor_id' => $rdv->doctor_id,
+            'rdv_id' => $rdv->id,
+            'rating' => $validated['rating'],
+            'comment' => $validated['comment'] ?? null,
+        ]);
+
+        return response()->json([
+            'message' => 'Review added successfully',
+            'review' => $review,
+        ], 201);
+    }
 }
