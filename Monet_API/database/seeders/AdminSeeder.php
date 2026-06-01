@@ -20,12 +20,12 @@ class AdminSeeder extends Seeder
         //
         DB::transaction(function () {
             $user = User::updateOrCreate(
-                ['email' => 'admin@test.com'],
+                ['email' => 'medamine@gmail.com'],
                 [
-                    'first_name' => 'Main',
-                    'last_name' => 'Admin',
-                    'username' => 'main_admin',
-                    'password' => Hash::make(env('ADMIN_SEED_PASSWORD', 'password123')),
+                    'first_name' => 'amine',
+                    'last_name' => 'jaoui',
+                    'username' => 'admin_med',
+                    'password' => Hash::make(env('ADMIN_SEED_PASSWORD', 'amine&&2005')),
                     'phone' => '0600000000',
                     'role' => UserRole::ADMIN->value,
                 ]

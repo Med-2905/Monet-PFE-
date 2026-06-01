@@ -3,42 +3,36 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+use App\Models\RDV;
 use App\Models\Patient;
 use App\Models\Doctor;
-use App\Models\Rdv;
-class Ordonnance extends Model
+class RdvMedicalRecord extends Model
 {
     //
     protected $fillable = [
         'rdv_id',
         'patient_id',
         'doctor_id',
+        'condition',
+        'symptoms',
         'diagnosis',
-        'medications',
-        'notes',
+        'treatment_plan',
+        'doctor_notes',
     ];
 
-
-
-    public function rdv() : BelongsTo
+    public function rdv()
     {
-        return $this->belongsTo(Rdv::class);
+        return $this->belongsTo(RDV::class, 'rdv_id');
     }
 
-
-
-    public function  patient() : BelongsTo
+    public function patient()
     {
         return $this->belongsTo(Patient::class);
     }
 
-
-    public function doctor() : BelongsTo
+    public function doctor()
     {
         return $this->belongsTo(Doctor::class);
     }
-
-    
 }

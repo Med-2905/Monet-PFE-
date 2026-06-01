@@ -11,6 +11,8 @@ use App\Models\User;
 use App\Models\RDV;
 use App\Models\Ordonnance;
 use App\Models\Reviews;
+use App\Models\RdvMedicalRecord;
+
 class Patient extends Model
 {
     //
@@ -20,7 +22,7 @@ class Patient extends Model
         'user_id',
         'address',
         'date_of_birth',
-        'gender', 
+        'gender',
         "emergency_contact",
     ];
 
@@ -34,27 +36,33 @@ class Patient extends Model
 
 
 
-    public function user() : BelongsTo
+    public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
 
-    public function rdvs() : HasMany
+    public function rdvs(): HasMany
     {
         return $this->hasMany(RDV::class);
     }
 
 
-    public function ordonances() : HasMany
+    public function ordonances(): HasMany
     {
         return $this->hasMany(Ordonnance::class);
     }
 
 
 
-    public function reviews() : HasMany
+    public function reviews(): HasMany
     {
         return $this->hasMany(Reviews::class);
+    }
+
+
+    public function medicalRecords() : HasMany
+    {
+        return $this->hasMany(RdvMedicalRecord::class);
     }
 }

@@ -18,6 +18,7 @@ use App\Models\Doctor;
 use App\Models\Reviews;
 use Illuminate\Validation\Rule;
 
+
 class AdminController extends Controller
 {
     //
@@ -539,7 +540,7 @@ class AdminController extends Controller
     }
 
     public function getAllReviews(Request $request)
-    {
+    {/*
         $reviews = Reviews::query()
             ->with([
                 'patient:id,first_name,last_name,username,email,phone',
@@ -580,7 +581,46 @@ class AdminController extends Controller
 
         return response()->json([
             'reviews' => $reviews,
-        ]);
+        ]);*/
+            $reviews = Reviews::query()
+        ->with([
+            'patient:id,user_id,address,date_of_birth,gender,emergency_contact',
+            'patient.user:id,first_name,last_name,username,email,phone',
+
+            'doctor:id,user_id,specialty_id,city_id,address,license_number,bio',
+            'doctor.user:id,first_name,last_name,username,email,phone',
+            'doctor.city:id,name',
+            'doctor.specialty:id,name',
+        ])
+        ->when($request->filled('rating'), function ($query) use ($request) {
+            $query->where('rating', $request->rating);
+        })
+        ->when($request->filled('patient'), function ($query) use ($request) {
+            $patient = strtolower($request->patient);
+
+            $query->whereHas('patient.user', function ($q) use ($patient) {
+                $q->whereRaw('LOWER(first_name) LIKE ?', ["%{$patient}%"])
+                    ->orWhereRaw('LOWER(last_name) LIKE ?', ["%{$patient}%"])
+                    ->orWhereRaw('LOWER(username) LIKE ?', ["%{$patient}%"])
+                    ->orWhereRaw('LOWER(email) LIKE ?', ["%{$patient}%"]);
+            });
+        })
+        ->when($request->filled('doctor'), function ($query) use ($request) {
+            $doctor = strtolower($request->doctor);
+
+            $query->whereHas('doctor.user', function ($q) use ($doctor) {
+                $q->whereRaw('LOWER(first_name) LIKE ?', ["%{$doctor}%"])
+                    ->orWhereRaw('LOWER(last_name) LIKE ?', ["%{$doctor}%"])
+                    ->orWhereRaw('LOWER(username) LIKE ?', ["%{$doctor}%"])
+                    ->orWhereRaw('LOWER(email) LIKE ?', ["%{$doctor}%"]);
+            });
+        })
+        ->latest()
+        ->paginate(15);
+
+    return response()->json([
+        'reviews' => $reviews,
+    ]);
     }
 
 

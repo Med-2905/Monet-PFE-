@@ -27,12 +27,12 @@ class Reviews extends Model
 
     public function doctor() : BelongsTo
     {
-        return $this->belongsTo(Doctor::class);
+        return $this->belongsTo(Doctor::class , 'doctor_id');
     }
 
     public function patient() : BelongsTo
     {
-        return $this->belongsTo(Patient::class);
+        return $this->belongsTo(Patient::class , 'patient_id');
     }
 
     public function rdv() : BelongsTo
