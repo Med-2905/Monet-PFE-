@@ -1,0 +1,61 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --color-brand-50: #eff6ff;
+  --color-brand-100: #dbeafe;
+  --color-brand-300: #93c5fd;
+  --color-brand-400: #60a5fa;
+  --color-brand-500: #3b82f6;
+  --color-brand-600: #2563eb;
+  --color-brand-700: #1d4ed8;
+}
+
+@layer base {
+  html,
+  body,
+  #root {
+    min-height: 100%;
+    width: 100%;
+  }
+
+  body {
+    margin: 0;
+    background: #f8fafc;
+  }
+
+  .dark body {
+    background: #020617;
+  }
+
+  button {
+    cursor: pointer;
+  }
+}
+
+@layer components {
+  .page-title {
+    @apply text-2xl font-bold tracking-tight text-slate-950 dark:text-white;
+  }
+
+  .page-subtitle {
+    @apply mt-1 text-sm text-slate-500 dark:text-slate-400;
+  }
+
+  .card {
+    @apply rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900;
+  }
+
+  .table-th {
+    @apply whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400;
+  }
+
+  .table-td {
+    @apply whitespace-nowrap px-4 py-4 text-sm text-slate-700 dark:text-slate-200;
+  }
+
+  .focus-ring {
+    @apply focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:focus:ring-offset-slate-950;
+  }
+}
