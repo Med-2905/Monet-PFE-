@@ -16,6 +16,9 @@ use App\Models\Reviews;
 
 use App\Models\RdvMedicalRecord;
 
+use App\Models\Cities;
+use App\Models\Specialties;
+use App\Models\Patient;
 class DoctorController extends Controller
 {
     //
@@ -59,6 +62,41 @@ class DoctorController extends Controller
 
 
 
+    public function cities(Request $request)
+{
+    $query = Cities::query()
+        ->select('id', 'name')
+        ->orderBy('name' , 'asc');
+
+    if ($request->filled('search')) {
+        $search = $request->search;
+
+        $query->where('name', 'ilike', "%{$search}%");
+    }
+
+    return response()->json([
+        'cities' => $query->get(),
+    ]);
+}
+
+public function specialties(Request $request)
+{
+    $query = Specialties::query()
+        ->select('id', 'name')
+        ->orderBy('name' , 'asc');
+
+    if ($request->filled('search')) {
+        $search = $request->search;
+
+        $query->where('name', 'ilike', "%{$search}%");
+    }
+
+    return response()->json([
+        'specialties' => $query->get(),
+    ]);
+}
+
+
     public function updateProfile(Request $request)
     {
         $doctor = $this->currentDoctor();
@@ -82,7 +120,7 @@ class DoctorController extends Controller
             ],
 
 
-            'phone' => ['somtimes', 'string', 'max:255'],
+            'phone' => ['sometimes','nullable', 'string', 'max:255'],
             'city_id' => ['sometimes', 'exists:cities,id'],
             'specialty_id' => ['sometimes', 'exists:specialties,id'],
             'address' => ['sometimes', 'nullable', 'string', 'max:255'],
@@ -441,6 +479,35 @@ class DoctorController extends Controller
             ]),
         ], 201);
     }
+
+    public function patients(Request $request)
+{
+    $doctor = $this->currentDoctor();
+
+    $patientIds = RDV::where('doctor_id', $doctor->id)
+        ->select('patient_id')
+        ->distinct();
+
+    $query = Patient::query()
+        ->whereIn('id', $patientIds)
+        ->with('user:id,first_name,last_name,email,phone')
+        ->orderByDesc('created_at');
+
+    if ($request->filled('search')) {
+        $search = $request->search;
+
+        $query->whereHas('user', function ($q) use ($search) {
+            $q->where('first_name', 'ilike', "%{$search}%")
+                ->orWhere('last_name', 'ilike', "%{$search}%")
+                ->orWhere('email', 'ilike', "%{$search}%")
+                ->orWhere('phone', 'ilike', "%{$search}%");
+        });
+    }
+
+    return response()->json([
+        'patients' => $query->paginate(10),
+    ]);
+}
 
     public function ordonnances(Request $request)
     {

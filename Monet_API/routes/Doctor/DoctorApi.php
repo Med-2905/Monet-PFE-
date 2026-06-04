@@ -14,6 +14,10 @@ Route::prefix('doctor')
         ->group(function () {
 
 
+
+                Route::get('/cities', [DoctorController::class, 'cities']);
+                Route::get('/specialties', [DoctorController::class, 'specialties']);
+
                 Route::get('/me', [DoctorController::class, 'me']);
                 Route::put('/profile', [DoctorController::class, 'updateProfile']);
                 Route::put('/change-password', [DoctorController::class, 'updatePassword']);
@@ -28,6 +32,9 @@ Route::prefix('doctor')
                 Route::post('/unavailable-days', [DoctorController::class, 'addUnavailableDay']);
                 Route::delete('/unavailable-days/{day}', [DoctorController::class, 'deleteUnavailableDay']);
 
+
+
+                Route::get('/patients', [DoctorController::class, 'patients']);
                 Route::post('/appointments/{rdv}/ordonnance', [DoctorController::class, 'createOrdonnance']);
                 Route::get('/ordonnances', [DoctorController::class, 'ordonnances']);
 

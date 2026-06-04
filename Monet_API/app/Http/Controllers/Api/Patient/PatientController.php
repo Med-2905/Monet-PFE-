@@ -17,6 +17,8 @@ use App\Models\doctor_unavailable_days;
 use App\Models\Ordonnance;
 use App\Models\RDV;
 use App\Models\Reviews;
+use App\Models\Cities;
+use App\Models\Specialties;
 //use App\Models\User;
 
 class PatientController extends Controller
@@ -164,7 +166,41 @@ class PatientController extends Controller
         ]);
     }
 
+    public function cities(Request $request)
+{
+    $query = Cities::query()
+        ->select('id', 'name')
+        ->orderBy('name' , 'asc')
+        ;
 
+    if ($request->filled('search')) {
+        $search = $request->search;
+
+        $query->where('name', 'ilike', "%{$search}%");
+    }
+
+    return response()->json([
+        'cities' => $query->get(),
+    ]);
+}
+
+
+public function specialties(Request $request)
+{
+    $query = Specialties::query()
+        ->select('id', 'name')
+        ->orderBy('name' , 'asc');
+
+    if ($request->filled('search')) {
+        $search = $request->search;
+
+        $query->where('name', 'ilike', "%{$search}%");
+    }
+
+    return response()->json([
+        'specialties' => $query->get(),
+    ]);
+}
 
     public function doctors(Request $request)
     {
